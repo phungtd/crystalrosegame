@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         crystalrosegame
 // @namespace    http://tampermonkey.net/
-// @version      1.0.2
+// @version      1.0.3
 // @description  try to take over the world!
 // @author       You
 // @match        https://crystalrosegame.wildrift.leagueoflegends.com
@@ -118,43 +118,55 @@
             waitForGameScene(async gameScene => {
                 console.log('[TM] game scene ready:', gameScene);
 
-                let changed = false;
+                let running = false;
 
-                const l = gameScene.plantView.landGroup.getChildren();
+                const autorun = async () => {
+                    if (running) return;
+                    running = true;
 
-                for (let i = 0; i < l.length; i++) {
-                    const e = l[i];
+                    try {
+                        let changed = false;
 
-                    console.log(`[TM] ${i + 1} ${e.curState}`);
+                        const l = gameScene.plantView.landGroup.getChildren();
 
-                    if (e.curState === _Land.State.NONE) {
-                        await gameScene.game.GameApi.exchangeItem(2000005, 1);
-                        await gameScene.game.GameApi.plantCrop(i + 1, 2000005);
-                        changed = true;
+                        for (let i = 0; i < l.length; i++) {
+                            const e = l[i];
+
+                            console.log(`[TM] ${i + 1} ${e.curState}`);
+
+                            if (e.curState === _Land.State.NONE) {
+                                await gameScene.game.GameApi.exchangeItem(2000005, 1);
+                                await gameScene.game.GameApi.plantCrop(i + 1, 2000005);
+                                changed = true;
+                            }
+
+                            if (e.curState === _Land.State.LACKWATER) {
+                                console.log(`[TM] water ${i + 1}`);
+                                await gameScene.game.GameApi.waterCrop(i + 1);
+                                changed = true;
+                            }
+
+                            if (e.curState === _Land.State.HARVEST) {
+                                console.log(`[TM] harvest ${i + 1}`);
+                                await gameScene.game.GameApi.harvestCrop(i + 1);
+                                await gameScene.game.GameApi.exchangeItem(2000005, 1);
+                                await gameScene.game.GameApi.plantCrop(i + 1, 2000005);
+                                changed = true;
+                            }
+                        }
+
+                        if (changed) {
+                            unsafeWindow.location.reload();
+                        }
+                    } catch (err) {
+                        console.error('[TM] autorun error', err);
+                    } finally {
+                        running = false;
                     }
+                };
 
-                    if (e.curState === _Land.State.LACKWATER) {
-                        console.log(`[TM] water ${i + 1}`);
-                        await gameScene.game.GameApi.waterCrop(i + 1);
-                        changed = true;
-                    }
+                setInterval(autorun, 60000);
 
-                    if (e.curState === _Land.State.HARVEST) {
-                        console.log(`[TM] harvest ${i + 1}`);
-                        await gameScene.game.GameApi.harvestCrop(i + 1);
-                        await gameScene.game.GameApi.exchangeItem(2000005, 1);
-                        await gameScene.game.GameApi.plantCrop(i + 1, 2000005);
-                        changed = true;
-                    }
-                }
-
-                if (changed) {
-                    unsafeWindow.location.reload();
-                } else {
-                    setTimeout(function () {
-                        unsafeWindow.location.reload();
-                    }, 600000);
-                }
             });
 
         } else {
