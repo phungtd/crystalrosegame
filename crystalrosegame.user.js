@@ -147,7 +147,7 @@
                 }
 
                 if (changed) {
-                    unsafeWindow.refresh();
+                    unsafeWindow.location.reload();
                 }
             });
 
