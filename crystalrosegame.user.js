@@ -230,6 +230,11 @@
                     window.plantView.water(e);
                     await sleep(5000);
                 }
+                if (e.curState === _Land.State.HARVEST) {
+                    console.log(`[TM] harvest ${i + 1}`);
+                    e.harvest();
+                    await sleep(5000);
+                }
             });
 
         }, 60000);
