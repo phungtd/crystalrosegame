@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         crystalrosegame
 // @namespace    http://tampermonkey.net/
-// @version      1.0.3
+// @version      1.0.4
 // @description  try to take over the world!
 // @author       You
 // @match        https://crystalrosegame.wildrift.leagueoflegends.com
@@ -121,6 +121,7 @@
                 let running = false;
 
                 const autorun = async () => {
+                    console.log("[TM] auto run");
                     if (running) return;
                     running = true;
 
@@ -157,6 +158,8 @@
 
                         if (changed) {
                             unsafeWindow.location.reload();
+                        } else {
+                            console.log("[TM] nothing to do");
                         }
                     } catch (err) {
                         console.error('[TM] autorun error', err);
@@ -166,6 +169,8 @@
                 };
 
                 setInterval(autorun, 60000);
+
+                autorun();
 
             });
 
