@@ -1,18 +1,21 @@
 // ==UserScript==
 // @name         crystalrosegame
 // @namespace    http://tampermonkey.net/
-// @version      2025-12-19
+// @version      1.0.0
 // @description  try to take over the world!
 // @author       You
 // @match        https://crystalrosegame.wildrift.leagueoflegends.com
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=tampermonkey.net
-// @grant        none
+// @grant        GM_xmlhttpRequest
+// @grant        unsafeWindow
 // ==/UserScript==
 
 (function () {
     'use strict';
 
-    const PANEL_ID = 'tm-crystal-panel';
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+    const REMOTE_URL = 'https://github.com/phungtd/crystalrosegame/raw/refs/heads/main/index.js';
 
     const _Land = {
         State: {
@@ -29,22 +32,131 @@
 
     };
 
-    const observer = new MutationObserver(() => {
-        document.querySelectorAll('script[src]').forEach(s => {
-            if (s.src.includes('index-B0vgKMUk.js')) {
-                s.remove(); // block script gốc
-                const ns = document.createElement('script');
-                ns.src = 'https://cdn.jsdelivr.net/gh/phungtd/crystalrosegame@main/index.js?v=' + Date.now();
-                document.head.appendChild(ns);
-                observer.disconnect();
-                console.log("[TM] override js");
+    GM_xmlhttpRequest({
+        method: 'GET',
+        url: REMOTE_URL,
+        onload: function (response) {
+            if (response.status !== 200) {
+                console.error('Failed to load remote script');
+                return;
             }
-        });
+
+            let jscontent = response.responseText;
+            jscontent = jscontent.replaceAll('"./', '"./assets/');
+            jscontent = jscontent.replaceAll('new URL("', 'new URL("assets/');
+
+            jscontent = jscontent.replaceAll('create(){', 'create(){window.sceneObj=this;');
+
+            const script = document.createElement('script');
+            script.type = 'module';
+            script.crossOrigin = 'anonymous';
+            script.textContent = jscontent;
+
+            // Inject inline
+            document.documentElement.appendChild(script);
+
+            console.log('[TM] script injected inline');
+        },
+        onerror: function () {
+            console.error('GM_xmlhttpRequest failed');
+        }
     });
 
-    observer.observe(document.documentElement, { childList: true, subtree: true });
+    function waitForLoginScene(cb, interval = 1000, timeout = 60000) {
+        const start = Date.now();
 
-    const sleep = ms => new Promise(r => setTimeout(r, ms));
+        const timer = setInterval(() => {
+
+            console.log('[TM] login timer', unsafeWindow.sceneObj);
+
+            if (
+                unsafeWindow.sceneObj &&
+                unsafeWindow.sceneObj.constructor &&
+                unsafeWindow.sceneObj.constructor.name === 'Login'
+            ) {
+                clearInterval(timer);
+                cb(unsafeWindow.sceneObj);
+            }
+
+            if (Date.now() - start > timeout) {
+                clearInterval(timer);
+                console.warn('[TM] login scene timeout');
+            }
+        }, interval);
+    }
+
+    function waitForGameScene(cb, interval = 1000, timeout = 60000) {
+        const start = Date.now();
+
+        const timer = setInterval(() => {
+            console.log('[TM] game timer', unsafeWindow.sceneObj);
+            if (
+                unsafeWindow.sceneObj &&
+                unsafeWindow.sceneObj.constructor &&
+                unsafeWindow.sceneObj.constructor.name === 'Game'
+            ) {
+                clearInterval(timer);
+                cb(unsafeWindow.sceneObj);
+            }
+
+            if (Date.now() - start > timeout) {
+                clearInterval(timer);
+                console.warn('[TM] game scene timeout');
+            }
+        }, interval);
+    }
+
+    waitForLoginScene(async loginScene => {
+        console.log('[TM] login scene ready:', loginScene);
+
+        await sleep(3000);
+
+        if (loginScene.game.GameData.loginInfo.isLogin) {
+
+            loginScene.scene.start("Preloader");
+
+            waitForGameScene(async gameScene => {
+                console.log('[TM] game scene ready:', gameScene);
+
+                let changed = false;
+
+                const l = gameScene.plantView.landGroup.getChildren();
+
+                for (let i = 0; i < l.length; i++) {
+                    const e = l[i];
+
+                    console.log(`[TM] ${i + 1} ${e.curState}`);
+
+                    if (e.curState === _Land.State.NONE) {
+                        await gameScene.game.GameApi.exchangeItem(2000005, 1);
+                        await gameScene.game.GameApi.plantCrop(i + 1, 2000005);
+                        changed = true;
+                    }
+
+                    if (e.curState === _Land.State.LACKWATER) {
+                        console.log(`[TM] water ${i + 1}`);
+                        await gameScene.game.GameApi.waterCrop(i + 1);
+                        changed = true;
+                    }
+
+                    if (e.curState === _Land.State.HARVEST) {
+                        console.log(`[TM] harvest ${i + 1}`);
+                        await gameScene.game.GameApi.harvestCrop(i + 1);
+                        changed = true;
+                    }
+                }
+
+                if (changed) {
+                    unsafeWindow.refresh();
+                }
+            });
+
+        } else {
+            alert('Logged out');
+        }
+    });
+
+    const PANEL_ID = 'tm-crystal-panel';
 
     async function autoWaterHarvest() {
         console.log('[TM] auto water harvest');
@@ -274,6 +386,7 @@
         }
 
         console.log('[TM] panel injected');
+
     }
 
 
@@ -284,6 +397,6 @@
     //   subtree: true
     // });
 
-    injectPanel();
+    // injectPanel();
 
 })();
