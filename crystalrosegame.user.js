@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         crystalrosegame
 // @namespace    http://tampermonkey.net/
-// @version      1.0.4
+// @version      1.0.5
 // @description  try to take over the world!
 // @author       You
 // @match        https://crystalrosegame.wildrift.leagueoflegends.com
@@ -133,9 +133,9 @@
                         for (let i = 0; i < l.length; i++) {
                             const e = l[i];
 
-                            console.log(`[TM] ${i + 1} ${e.curState}`);
+                            console.log(`[TM] ${i + 1} ${e.curState} ${e.curGrowthStage}`);
 
-                            if (e.curState === _Land.State.NONE) {
+                            if (e.curState === _Land.State.NONE && e.curGrowthStage === _Land.GrowthStage.NONE) {
                                 await gameScene.game.GameApi.exchangeItem(2000005, 1);
                                 await gameScene.game.GameApi.plantCrop(i + 1, 2000005);
                                 changed = true;
