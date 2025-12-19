@@ -34,7 +34,7 @@
             if (s.src.includes('index-B0vgKMUk.js')) {
                 s.remove(); // block script gốc
                 const ns = document.createElement('script');
-                ns.src = 'https://raw.githubusercontent.com/phungtd/crystalrosegame/refs/heads/main/index.js';
+                ns.src = 'https://cdn.jsdelivr.net/gh/phungtd/crystalrosegame@main/index.js?v=' + Date.now();
                 document.head.appendChild(ns);
                 observer.disconnect();
                 console.log("[TM] override js");
