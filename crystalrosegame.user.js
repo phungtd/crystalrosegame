@@ -12,6 +12,23 @@
 (function () {
     'use strict';
 
+    const PANEL_ID = 'tm-crystal-panel';
+
+    const _Land = {
+        State: {
+            NONE: 0,
+            GROW: 1,
+            HARVEST: 2,
+            LACKWATER: 3
+        },
+        GrowthStage: {
+            NONE: 0,
+            GROWING: 1,
+            MATURITY: 2
+        }
+
+    };
+
     const observer = new MutationObserver(() => {
         document.querySelectorAll('script[src]').forEach(s => {
             if (s.src.includes('index-B0vgKMUk.js')) {
@@ -27,9 +44,42 @@
 
     observer.observe(document.documentElement, { childList: true, subtree: true });
 
-    const PANEL_ID = 'tm-crystal-panel';
-
     const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+    async function autoWaterHarvest() {
+        console.log('[TM] auto water harvest');
+
+        const l = window.plantView.landGroup.getChildren();
+
+        for (let i = 0; i < l.length; i++) {
+            const e = l[i];
+
+            if (e.curState === _Land.State.LACKWATER) {
+                console.log(`[TM] water ${i + 1}`);
+                window.plantView.landIndex = i + 1;
+                window.plantView.water(e);
+                await sleep(1000);
+            }
+
+            if (e.curState === _Land.State.HARVEST) {
+                console.log(`[TM] harvest ${i + 1}`);
+                // e.harvest();
+                window.plantView.landIndex = i + 1;
+                window.plantView.showHarvestPanel(e);
+                await sleep(1000);
+            }
+        }
+    }
+
+    function hookReady() {
+        if (!window.GameApi || !window.plantView) {
+            alert("Hook failed");
+            return 0;
+        }
+        console.log("[TM] hook ready");
+        return 1;
+
+    }
 
     function injectPanel() {
         if (document.getElementById(PANEL_ID)) {
@@ -55,23 +105,6 @@
         panel.style.fontFamily = 'Arial, sans-serif';
         panel.style.zIndex = '2147483647';
         panel.style.boxShadow = '0 0 10px rgba(0,0,0,0.6)';
-
-        const _Land = {
-            State: {
-                NONE: 0,
-                GROW: 1,
-                HARVEST: 2,
-                LACKWATER: 3
-            },
-            GrowthStage: {
-                NONE: 0,
-                GROWING: 1,
-                MATURITY: 2
-            }
-
-        };
-
-        const btnEnabled = (!window.GameApi || !window.plantView) ? 'disabled' : '';
 
         console.log("[TM] hook ready");
 
@@ -123,7 +156,22 @@
         `).join('')}
       </div>
 
-      <button id="tm-run" ${btnEnabled}
+      <button id="tm-auto"
+        style="
+          width:100%;
+          margin-top:8px;
+          padding:6px;
+          background:#4caf50;
+          color:#fff;
+          border:none;
+          border-radius:4px;
+          font-weight:bold;
+          cursor:pointer;
+        ">
+        AUTO
+      </button>
+
+      <button id="tm-run"
         style="
           width:100%;
           margin-top:8px;
@@ -176,6 +224,8 @@
 
 
         panel.querySelector('#tm-run').onclick = async () => {
+            if (!hookReady()) return;
+
             const positions = [...panel.querySelectorAll('input[type=checkbox]:checked')]
                 .map(e => e.value);
 
@@ -218,26 +268,12 @@
             }
         };
 
+        panel.querySelector('#tm-auto').onclick = async () => {
+            if (!hookReady()) return;
+            await autoWaterHarvest();
+        }
+
         console.log('[TM] panel injected');
-
-        setInterval(function () {
-
-            const l = window.plantView.landGroup.getChildren();
-            l.forEach(async (e, i) => {
-                if (e.curState === _Land.State.LACKWATER) {
-                    console.log(`[TM] water ${i + 1}`);
-                    window.plantView.landIndex = i + 1;
-                    window.plantView.water(e);
-                    await sleep(5000);
-                }
-                if (e.curState === _Land.State.HARVEST) {
-                    console.log(`[TM] harvest ${i + 1}`);
-                    e.harvest();
-                    await sleep(5000);
-                }
-            });
-
-        }, 60000);
     }
 
 
