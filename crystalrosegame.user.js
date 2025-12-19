@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         crystalrosegame
 // @namespace    http://tampermonkey.net/
-// @version      1.0.1
+// @version      1.0.2
 // @description  try to take over the world!
 // @author       You
 // @match        https://crystalrosegame.wildrift.leagueoflegends.com
@@ -142,12 +142,18 @@
                     if (e.curState === _Land.State.HARVEST) {
                         console.log(`[TM] harvest ${i + 1}`);
                         await gameScene.game.GameApi.harvestCrop(i + 1);
+                        await gameScene.game.GameApi.exchangeItem(2000005, 1);
+                        await gameScene.game.GameApi.plantCrop(i + 1, 2000005);
                         changed = true;
                     }
                 }
 
                 if (changed) {
                     unsafeWindow.location.reload();
+                } else {
+                    setTimeout(function () {
+                        unsafeWindow.location.reload();
+                    }, 600000);
                 }
             });
 
