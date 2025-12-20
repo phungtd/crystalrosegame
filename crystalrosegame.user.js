@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         crystalrosegame
 // @namespace    http://tampermonkey.net/
-// @version      1.0.6
+// @version      1.0.7
 // @description  try to take over the world!
 // @author       You
 // @match        https://crystalrosegame.wildrift.leagueoflegends.com
@@ -80,6 +80,8 @@
             if (Date.now() - start > timeout) {
                 clearInterval(timer);
                 console.warn('[TM] login scene timeout');
+
+                unsafeWindow.location.reload();
             }
         }, interval);
     }
@@ -101,6 +103,8 @@
             if (Date.now() - start > timeout) {
                 clearInterval(timer);
                 console.warn('[TM] game scene timeout');
+
+                unsafeWindow.location.reload();
             }
         }, interval);
     }
@@ -204,6 +208,7 @@
                         }
                     } catch (err) {
                         console.error('[TM] autorun error', err);
+                        unsafeWindow.location.reload();
                     } finally {
                         running = false;
                     }
