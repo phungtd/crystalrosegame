@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         crystalrosegame
 // @namespace    http://tampermonkey.net/
-// @version      1.0.5
+// @version      1.0.6
 // @description  try to take over the world!
 // @author       You
 // @match        https://crystalrosegame.wildrift.leagueoflegends.com
@@ -44,7 +44,6 @@
             let jscontent = response.responseText;
             jscontent = jscontent.replaceAll('"./', '"./assets/');
             jscontent = jscontent.replaceAll('new URL("', 'new URL("assets/');
-
             jscontent = jscontent.replaceAll('create(){', 'create(){window.sceneObj=this;');
 
             const script = document.createElement('script');
@@ -109,7 +108,7 @@
     waitForLoginScene(async loginScene => {
         console.log('[TM] login scene ready:', loginScene);
 
-        await sleep(3000);
+        await sleep(5000);
 
         if (loginScene.game.GameData.loginInfo.isLogin) {
 
@@ -120,6 +119,10 @@
 
                 let running = false;
 
+                const hasItem = function (id) {
+                    return gameScene.game.GameData.infoData.bag.seeds.some(i => i.iItemId === id);
+                };
+
                 const autorun = async () => {
                     console.log("[TM] auto run");
                     if (running) return;
@@ -128,31 +131,69 @@
                     try {
                         let changed = false;
 
+                        const autoPlant = localStorage.getItem("auto_Plant") === "true";
+                        const autoWater = localStorage.getItem("auto_Water") === "true";
+                        const autoHarvest = localStorage.getItem("auto_Harvest") === "true";
+                        const autoBuy = localStorage.getItem("auto_Buy") === "true";
+
                         const l = gameScene.plantView.landGroup.getChildren();
 
                         for (let i = 0; i < l.length; i++) {
                             const e = l[i];
 
-                            console.log(`[TM] ${i + 1} ${e.curState} ${e.curGrowthStage}`);
+                            const autoCell = localStorage.getItem(`auto_${i + 1}`) === "true";
+                            const autoItem = localStorage.getItem(`item_${i + 1}`);
+                            if (!autoCell || !autoItem) continue;
 
-                            if (e.curState === _Land.State.NONE && e.curGrowthStage === _Land.GrowthStage.NONE) {
-                                await gameScene.game.GameApi.exchangeItem(2000005, 1);
-                                await gameScene.game.GameApi.plantCrop(i + 1, 2000005);
-                                changed = true;
+                            console.log(`[TM] ${i + 1} ${autoItem} ${e.curState} ${e.curGrowthStage}`);
+
+                            if (autoPlant && e.curState === _Land.State.NONE && e.curGrowthStage === _Land.GrowthStage.NONE) {
+                                if (hasItem(autoItem)) {
+                                    console.log(`[TM] plant ${i + 1}`);
+                                    await gameScene.game.GameApi.plantCrop(i + 1, autoItem);
+                                    changed = true;
+                                } else {
+                                    if (autoBuy) {
+                                        console.log(`[TM] buy ${autoItem}`);
+                                        await gameScene.game.GameApi.exchangeItem(autoItem, 1);
+                                        if (hasItem(autoItem)) {
+                                            console.log(`[TM] plant ${i + 1}`);
+
+                                            await gameScene.game.GameApi.plantCrop(i + 1, autoItem);
+                                            changed = true;
+                                        }
+                                    }
+                                }
                             }
 
-                            if (e.curState === _Land.State.LACKWATER) {
+                            if (autoWater && e.curState === _Land.State.LACKWATER) {
                                 console.log(`[TM] water ${i + 1}`);
                                 await gameScene.game.GameApi.waterCrop(i + 1);
                                 changed = true;
                             }
 
-                            if (e.curState === _Land.State.HARVEST) {
+                            if (autoHarvest && e.curState === _Land.State.HARVEST) {
                                 console.log(`[TM] harvest ${i + 1}`);
                                 await gameScene.game.GameApi.harvestCrop(i + 1);
-                                await gameScene.game.GameApi.exchangeItem(2000005, 1);
-                                await gameScene.game.GameApi.plantCrop(i + 1, 2000005);
                                 changed = true;
+
+                                if (autoPlant) {
+                                    if (hasItem(autoItem)) {
+                                        console.log(`[TM] plant ${i + 1}`);
+                                        await gameScene.game.GameApi.plantCrop(i + 1, autoItem);
+                                    } else {
+                                        if (autoBuy) {
+                                            console.log(`[TM] buy ${autoItem}`);
+                                            await gameScene.game.GameApi.exchangeItem(autoItem, 1);
+
+                                            if (hasItem(autoItem)) {
+                                                console.log(`[TM] plant ${i + 1}`);
+                                                await gameScene.game.GameApi.plantCrop(i + 1, autoItem);
+                                            }
+                                        }
+                                    }
+                                }
+
                             }
                         }
 
@@ -170,51 +211,18 @@
 
                 setInterval(autorun, 60000);
 
+                await sleep(5000);
+
                 autorun();
 
             });
 
         } else {
-            alert('Logged out');
+            unsafeWindow.location.reload();
         }
     });
 
     const PANEL_ID = 'tm-crystal-panel';
-
-    async function autoWaterHarvest() {
-        console.log('[TM] auto water harvest');
-
-        const l = window.plantView.landGroup.getChildren();
-
-        for (let i = 0; i < l.length; i++) {
-            const e = l[i];
-
-            if (e.curState === _Land.State.LACKWATER) {
-                console.log(`[TM] water ${i + 1}`);
-                window.plantView.landIndex = i + 1;
-                window.plantView.water(e);
-                await sleep(1000);
-            }
-
-            if (e.curState === _Land.State.HARVEST) {
-                console.log(`[TM] harvest ${i + 1}`);
-                // e.harvest();
-                window.plantView.landIndex = i + 1;
-                window.plantView.showHarvestPanel(e);
-                await sleep(1000);
-            }
-        }
-    }
-
-    function hookReady() {
-        if (!window.GameApi || !window.plantView) {
-            alert("Hook failed");
-            return 0;
-        }
-        console.log("[TM] hook ready");
-        return 1;
-
-    }
 
     function injectPanel() {
         if (document.getElementById(PANEL_ID)) {
@@ -254,24 +262,23 @@
          user-select: none;">
          ☰ Crystal Rose Panel
       </div>
-      <div style="font-weight:bold;margin-bottom:6px;">Position</div>
-      ${[1, 2, 3, 4, 5, 6].map(v => `
+
+      <div style="font-weight:bold;margin:16px 0 8px;">AUTO</div>
+      ${['Plant', 'Water', 'Harvest', 'Buy'].map(v => `
         <label style="">
-          <input type="checkbox" checked value="${v}"> ${v}
+          <input type="checkbox" name="auto_${v}" value="on"> ${v}
         </label>
       `).join('')}
 
-      <div style="font-weight:bold;margin:8px 0 4px;">Action</div>
-      <label style="">
-        <input type="radio" name="action" value="Plant" checked> Plant
-      </label>
-      <label style="">
-        <input type="radio" name="action" value="Water"> Water
-      </label>
-
-      <div style="font-weight:bold;margin:8px 0 4px;">Items</div>
-      <div style="max-height:180px;overflow:auto;border:1px solid #444;padding:4px;">
-        ${[
+      <div style="font-weight:bold;margin:16px 0 8px;">ITEMS</div>
+      ${[1, 2, 3, 4, 5, 6].map(v => `
+      <div style="display:flex;margin-bottom:8px;flex-direction:row;">
+        <label style="">
+          <input type="checkbox" name="auto_${v}" value="${v}"> ${v} &nbsp;
+        </label>
+        <select name="item_${v}" style="flex:1;">
+          <option value="0">---</option>
+          ${[
                 [2000001, 'Skyglow Tulip'],
                 [2000002, 'Battle Rose'],
                 [2000003, 'Spirit Lotus'],
@@ -285,13 +292,13 @@
                 [20000011, 'Moonlight Lotus'],
                 [20000012, 'Starlight Lily']
             ].map(([id, name]) => `
-          <label style="display:block">
-            <input type="radio" name="item" value="${id}"> ${name}
-          </label>
-        `).join('')}
-      </div>
+            <option value="${id}">${name}</option>
+          `).join('')}
+        </select>
+        </div>
+      `).join('')}
 
-      <button id="tm-auto"
+      <button id="tm-save"
         style="
           width:100%;
           margin-top:8px;
@@ -302,23 +309,9 @@
           border-radius:4px;
           font-weight:bold;
           cursor:pointer;
+          display:none;
         ">
-        AUTO
-      </button>
-
-      <button id="tm-run"
-        style="
-          width:100%;
-          margin-top:8px;
-          padding:6px;
-          background:#4caf50;
-          color:#fff;
-          border:none;
-          border-radius:4px;
-          font-weight:bold;
-          cursor:pointer;
-        ">
-        RUN
+        SAVE
       </button>
     `;
 
@@ -357,56 +350,34 @@
             }
         })(panel, panel.querySelector('#tm-drag'));
 
+        panel.querySelectorAll('[name]').forEach(el => {
+            const saved = localStorage.getItem(el.name);
 
-        panel.querySelector('#tm-run').onclick = async () => {
-            if (!hookReady()) return;
+            if (saved === null) return;
 
-            const positions = [...panel.querySelectorAll('input[type=checkbox]:checked')]
-                .map(e => e.value);
-
-            const action = panel.querySelector('input[name=action]:checked')?.value;
-            const item = panel.querySelector('input[name=item]:checked')?.value;
-
-            if (!window.GameApi) {
-                alert('GameApi not available');
-                return;
+            if (el.type === "checkbox") {
+                el.checked = saved === "true";
+            } else {
+                el.value = saved;
             }
+        });
 
-            if (action === 'Plant') {
+        panel.addEventListener("change", (e) => {
+            const el = e.target;
 
-                console.log('[TM] plant start', { positions, item });
+            if (!el.name) return;
 
-                for (const position of positions) {
-                    try {
-                        console.log(`[TM] plant ${position} with ${item}`);
-                        await window.GameApi.plantCrop(position, item);
-                    } catch (e) {
-                        console.error('[TM] plant error', { position, item, e });
-                    }
-                }
-
-                alert(`[TM] Plant done`);
+            if (el.type === "checkbox") {
+                localStorage.setItem(el.name, el.checked);
+            } else {
+                localStorage.setItem(el.name, el.value);
             }
+        })
 
-            if (action === 'Water') {
-                console.log('[TM] water start', { positions });
-                for (const position of positions) {
-                    try {
-                        console.log(`[TM] water ${position}`);
-                        await window.GameApi.waterCrop(position);
-                    } catch (e) {
-                        console.error('[TM] Water error', { position, e });
-                    }
-                }
 
-                alert(`[TM] Water done`);
-            }
+        panel.querySelector('#tm-save').onclick = async () => {
+
         };
-
-        panel.querySelector('#tm-auto').onclick = async () => {
-            if (!hookReady()) return;
-            await autoWaterHarvest();
-        }
 
         console.log('[TM] panel injected');
 
@@ -420,6 +391,6 @@
     //   subtree: true
     // });
 
-    // injectPanel();
+    injectPanel();
 
 })();
