@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         crystalrosegame
 // @namespace    http://tampermonkey.net/
-// @version      1.0.7
+// @version      1.0.8
 // @description  try to take over the world!
 // @author       You
 // @match        https://crystalrosegame.wildrift.leagueoflegends.com
@@ -136,8 +136,10 @@
                         const autoHarvest = localStorage.getItem("auto_Harvest") === "true";
                         const autoBuy = localStorage.getItem("auto_Buy") === "true";
 
+                        console.log("[TM] ", {autoPlant, autoWater, autoHarvest, autoBuy});
+
                         const hasItem = function (id) {
-                            return gameScene.game.GameData.infoData.bag.seeds.some(i => i.iItemId === id);
+                            return gameScene.game.GameData.infoData.bag.seeds.some(i => i.iItemId === Number(id));
                         };
 
                         const l = gameScene.plantView.landGroup.getChildren();
@@ -157,6 +159,7 @@
                                     await gameScene.game.GameApi.plantCrop(i + 1, autoItem);
                                     changed = true;
                                 } else {
+                                    console.log(`[TM] unavailable ${autoItem}`, gameScene.game.GameData.infoData.bag.seeds);
                                     if (autoBuy) {
                                         console.log(`[TM] buy ${autoItem}`);
                                         await gameScene.game.GameApi.exchangeItem(autoItem, 1);
@@ -186,6 +189,7 @@
                                         console.log(`[TM] plant ${i + 1}`);
                                         await gameScene.game.GameApi.plantCrop(i + 1, autoItem);
                                     } else {
+                                        console.log(`[TM] unavailable ${autoItem}`, gameScene.game.GameData.infoData.bag.seeds);
                                         if (autoBuy) {
                                             console.log(`[TM] buy ${autoItem}`);
                                             await gameScene.game.GameApi.exchangeItem(autoItem, 1);
