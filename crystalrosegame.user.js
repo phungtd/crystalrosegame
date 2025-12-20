@@ -15,7 +15,9 @@
 
     const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-    const REMOTE_URL = 'https://github.com/phungtd/crystalrosegame/raw/refs/heads/main/index.js';
+    // const REMOTE_URL = 'https://github.com/phungtd/crystalrosegame/raw/refs/heads/main/index.js';
+    const REMOTE_URL = 'https://cdn.jsdelivr.net/gh/phungtd/crystalrosegame@main/index.js';
+
 
     const _Land = {
         State: {
