@@ -123,10 +123,6 @@
 
                 let running = false;
 
-                const hasItem = function (id) {
-                    return gameScene.game.GameData.infoData.bag.seeds.some(i => i.iItemId === id);
-                };
-
                 const autorun = async () => {
                     console.log("[TM] auto run");
                     if (running) return;
@@ -139,6 +135,10 @@
                         const autoWater = localStorage.getItem("auto_Water") === "true";
                         const autoHarvest = localStorage.getItem("auto_Harvest") === "true";
                         const autoBuy = localStorage.getItem("auto_Buy") === "true";
+
+                        const hasItem = function (id) {
+                            return gameScene.game.GameData.infoData.bag.seeds.some(i => i.iItemId === id);
+                        };
 
                         const l = gameScene.plantView.landGroup.getChildren();
 
