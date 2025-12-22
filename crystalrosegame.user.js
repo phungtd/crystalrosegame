@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         crystalrosegame
 // @namespace    http://tampermonkey.net/
-// @version      1.0.8
+// @version      1.0.9
 // @description  try to take over the world!
 // @author       You
 // @match        https://crystalrosegame.wildrift.leagueoflegends.com
@@ -15,9 +15,7 @@
 
     const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-    // const REMOTE_URL = 'https://github.com/phungtd/crystalrosegame/raw/refs/heads/main/index.js';
     const REMOTE_URL = 'https://cdn.jsdelivr.net/gh/phungtd/crystalrosegame@main/index.js';
-
 
     const _Land = {
         State: {
@@ -138,7 +136,7 @@
                         const autoHarvest = localStorage.getItem("auto_Harvest") === "true";
                         const autoBuy = localStorage.getItem("auto_Buy") === "true";
 
-                        console.log("[TM] ", {autoPlant, autoWater, autoHarvest, autoBuy});
+                        console.log("[TM] ", { autoPlant, autoWater, autoHarvest, autoBuy });
 
                         const hasItem = function (id) {
                             return gameScene.game.GameData.infoData.bag.seeds.some(i => i.iItemId === Number(id));
@@ -233,6 +231,8 @@
         }
     });
 
+    setTimeout(unsafeWindow.location.reload, 300000);
+
     const PANEL_ID = 'tm-crystal-panel';
 
     function injectPanel() {
@@ -270,9 +270,18 @@
          background: #333;
          padding: 4px 6px;
          border-radius: 4px;
+         display:flex;
+         align-items: center;
+         justify-content: space-between;
          user-select: none;">
          ☰ Crystal Rose Panel
+         <div style="margin-left:16px">
+             <button id="tm-min">_</button>
+             <button id="tm-max">□</button>
+         </div>
       </div>
+
+      <div id="tm-content">
 
       <div style="font-weight:bold;margin:16px 0 8px;">AUTO</div>
       ${['Plant', 'Water', 'Harvest', 'Buy'].map(v => `
@@ -324,6 +333,7 @@
         ">
         SAVE
       </button>
+    </div>
     `;
 
         document.documentElement.appendChild(panel);
@@ -386,8 +396,13 @@
         })
 
 
-        panel.querySelector('#tm-save').onclick = async () => {
+        panel.querySelector('#tm-min').onclick = async () => {
+            panel.querySelector('#tm-content').style.display = 'none';
+        };
 
+
+        panel.querySelector('#tm-max').onclick = async () => {
+            panel.querySelector('#tm-content').style.display = 'block';
         };
 
         console.log('[TM] panel injected');
