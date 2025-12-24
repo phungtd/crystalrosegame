@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         crystalrosegame
 // @namespace    http://tampermonkey.net/
-// @version      1.0.9
+// @version      1.1.0
 // @description  try to take over the world!
 // @author       You
 // @match        https://crystalrosegame.wildrift.leagueoflegends.com
