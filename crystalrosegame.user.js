@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         crystalrosegame
 // @namespace    http://tampermonkey.net/
-// @version      1.1.0
+// @version      1.1.1
 // @description  try to take over the world!
 // @author       You
 // @match        https://crystalrosegame.wildrift.leagueoflegends.com
@@ -45,6 +45,8 @@
             jscontent = jscontent.replaceAll('"./', '"./assets/');
             jscontent = jscontent.replaceAll('new URL("', 'new URL("assets/');
             jscontent = jscontent.replaceAll('create(){', 'create(){window.sceneObj=this;');
+            jscontent = jscontent.replaceAll('this.kettleObj.setVisible(!0)', 'this.kettleObj.setVisible(!1)');
+            jscontent = jscontent.replaceAll('this.scene.game.Tips.show(instance.t("Event_5_C2_Pandora_35"),3e3,"short")');
 
             const script = document.createElement('script');
             script.type = 'module';
@@ -281,7 +283,7 @@
          </div>
       </div>
 
-      <div id="tm-content">
+      <div id="tm-content" style="display:none">
 
       <div style="font-weight:bold;margin:16px 0 8px;">AUTO</div>
       ${['Plant', 'Water', 'Harvest', 'Buy'].map(v => `
