@@ -308,9 +308,9 @@
                 [2000007, 'Voidbloom'],
                 [2000008, 'Thunder Iris'],
                 [2000009, 'Crystal Rose'],
-                [20000010, 'Aurora Icebloom'],
-                [20000011, 'Moonlight Lotus'],
-                [20000012, 'Starlight Lily']
+                [2000010, 'Aurora Icebloom'],
+                [2000011, 'Moonlight Lotus'],
+                [2000012, 'Starlight Lily']
             ].map(([id, name]) => `
             <option value="${id}">${name}</option>
           `).join('')}
