@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         crystalrosegame
 // @namespace    http://tampermonkey.net/
-// @version      1.1.1
+// @version      1.1.2
 // @description  try to take over the world!
 // @author       You
 // @match        https://crystalrosegame.wildrift.leagueoflegends.com
@@ -45,8 +45,6 @@
             jscontent = jscontent.replaceAll('"./', '"./assets/');
             jscontent = jscontent.replaceAll('new URL("', 'new URL("assets/');
             jscontent = jscontent.replaceAll('create(){', 'create(){window.sceneObj=this;');
-            jscontent = jscontent.replaceAll('this.kettleObj.setVisible(!0)', 'this.kettleObj.setVisible(!1)');
-            jscontent = jscontent.replaceAll('this.scene.game.Tips.show(instance.t("Event_5_C2_Pandora_35"),3e3,"short")');
 
             const script = document.createElement('script');
             script.type = 'module';
@@ -88,6 +86,38 @@
         }, interval);
     }
 
+    function setStatus(message) {
+        let bar = document.getElementById("tm-status-bar");
+
+        if (!bar) {
+            bar = document.createElement("div");
+            bar.id = "tm-status-bar";
+
+            Object.assign(bar.style, {
+                position: "fixed",
+                bottom: "0",
+                left: "0",
+                width: "100%",
+                zIndex: 999999,
+                background: "rgba(0,0,0,0.9)",
+                color: "#fff",
+                fontSize: "13px",
+                fontFamily: "system-ui, -apple-system, BlinkMacSystemFont",
+                padding: "6px 10px",
+                boxShadow: "0 -2px 8px rgba(0,0,0,.3)",
+                pointerEvents: "none",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis"
+            });
+
+            document.body.appendChild(bar);
+        }
+
+        const time = new Date().toLocaleTimeString();
+        bar.textContent = `[${time}] ${message}`;
+    }
+
     function waitForGameScene(cb, interval = 1000, timeout = 60000) {
         const start = Date.now();
 
@@ -113,15 +143,95 @@
 
     waitForLoginScene(async loginScene => {
         console.log('[TM] login scene ready:', loginScene);
+        setStatus('Login scene ready');
 
         await sleep(5000);
 
         if (loginScene.game.GameData.loginInfo.isLogin) {
 
             loginScene.scene.start("Preloader");
+            setStatus('Preloader');
 
             waitForGameScene(async gameScene => {
                 console.log('[TM] game scene ready:', gameScene);
+                setStatus('Game scene ready');
+
+                const autorun2 = async () => {
+                    try {
+                        const autoPlant = localStorage.getItem("auto_Plant") === "true";
+                        const autoWater = localStorage.getItem("auto_Water") === "true";
+                        const autoHarvest = localStorage.getItem("auto_Harvest") === "true";
+                        const autoBuy = localStorage.getItem("auto_Buy") === "true";
+
+                        const hasItem = function (id) {
+                            return gameScene.game.GameData.infoData.bag.seeds.some(i => i.iItemId === Number(id));
+                        };
+
+                        if (!gameScene.game.GameApi.serverUnixTime) {
+                            await gameScene.game.GameApi.getServerTime();
+                            console.log('[TM] server time', gameScene.game.GameApi.serverUnixTime);
+                            setStatus(`Server time ${gameScene.game.GameApi.serverUnixTime}`);
+                        }
+
+                        const garden = await gameScene.game.GameApi.getUserGardenInfo();
+                        const { gardenInfo: n = [] } = garden.jData;
+                        console.log('[TM] garden', garden);
+
+                        for (const e of n) {
+                            const { cropId: h, wateringTime: d, plantTime: c, cropDetail: u, landIndex: p } = e;
+
+                            const autoCell = localStorage.getItem(`auto_${p}`) === "true";
+                            const autoItem = localStorage.getItem(`item_${p}`);
+                            if (!autoCell || !autoItem) return;
+
+                            if (h === 0) {
+                                if (autoPlant) {
+                                    if (hasItem(autoItem)) {
+                                        console.log(`[TM] plant ${p}`);
+                                        setStatus(`Plant ${p}`);
+                                        await gameScene.game.GameApi.plantCrop(p, autoItem);
+                                    } else {
+                                        console.log(`[TM] unavailable ${autoItem}`, gameScene.game.GameData.infoData.bag.seeds);
+                                        if (autoBuy) {
+                                            console.log(`[TM] buy ${autoItem}`);
+                                            setStatus(`Buy ${autoItem}`);
+                                            await gameScene.game.GameApi.exchangeItem(autoItem, 1)
+                                            if (hasItem(autoItem)) {
+                                                console.log(`[TM] plant ${p}`);
+                                                setStatus(`Plant ${p}`);
+                                                await gameScene.game.GameApi.plantCrop(p, autoItem);
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                if (autoHarvest && gameScene.game.GameApi.serverUnixTime - c > u.growTime) {
+                                    console.log('[TM] harvest', p);
+                                    setStatus(`Harvest ${p}`);
+                                    await gameScene.game.GameApi.harvestCrop(p);
+                                } else {
+                                    if (autoWater && gameScene.game.GameApi.serverUnixTime - d > gameScene.game.GameData.gameConfig.farmEnterWaterDeficitCountdown) {
+                                        console.log('[TM] water', p);
+                                        setStatus(`Water ${p}`);
+                                        await gameScene.game.GameApi.waterCrop(p);
+                                    }
+                                }
+                            }
+                        }
+
+                    } catch (e) {
+                        console.log('[TM] error', e);
+                        // unsafeWindow.location.reload();
+                    }
+                };
+
+                setInterval(autorun2, 60000);
+
+                await sleep(5000);
+
+                autorun2();
+
+                return;
 
                 let running = false;
 
@@ -233,7 +343,7 @@
         }
     });
 
-    setTimeout(unsafeWindow.location.reload, 300000);
+    // setTimeout(unsafeWindow.location.reload, 300000);
 
     const PANEL_ID = 'tm-crystal-panel';
 
