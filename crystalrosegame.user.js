@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         crystalrosegame
 // @namespace    http://tampermonkey.net/
-// @version      1.1.2
+// @version      1.1.3
 // @description  try to take over the world!
 // @author       You
 // @match        https://crystalrosegame.wildrift.leagueoflegends.com
@@ -158,10 +158,14 @@
 
                 const autorun2 = async () => {
                     try {
+                        gameScene.plantView.getLandData();
+
                         const autoPlant = localStorage.getItem("auto_Plant") === "true";
                         const autoWater = localStorage.getItem("auto_Water") === "true";
                         const autoHarvest = localStorage.getItem("auto_Harvest") === "true";
                         const autoBuy = localStorage.getItem("auto_Buy") === "true";
+
+                        const lands = gameScene.plantView.landGroup.getChildren();
 
                         const hasItem = function (id) {
                             return gameScene.game.GameData.infoData.bag.seeds.some(i => i.iItemId === Number(id));
@@ -176,6 +180,7 @@
                         const garden = await gameScene.game.GameApi.getUserGardenInfo();
                         const { gardenInfo: n = [] } = garden.jData;
                         console.log('[TM] garden', garden);
+                        setStatus(`Garden Info ${n.length}`);
 
                         for (const e of n) {
                             const { cropId: h, wateringTime: d, plantTime: c, cropDetail: u, landIndex: p } = e;
@@ -196,11 +201,11 @@
                                             console.log(`[TM] buy ${autoItem}`);
                                             setStatus(`Buy ${autoItem}`);
                                             await gameScene.game.GameApi.exchangeItem(autoItem, 1)
-                                            if (hasItem(autoItem)) {
-                                                console.log(`[TM] plant ${p}`);
-                                                setStatus(`Plant ${p}`);
-                                                await gameScene.game.GameApi.plantCrop(p, autoItem);
-                                            }
+                                            // if (hasItem(autoItem)) {
+                                            console.log(`[TM] plant ${p}`);
+                                            setStatus(`Plant ${p}`);
+                                            await gameScene.game.GameApi.plantCrop(p, autoItem);
+                                            // }
                                         }
                                     }
                                 }
@@ -214,6 +219,7 @@
                                         console.log('[TM] water', p);
                                         setStatus(`Water ${p}`);
                                         await gameScene.game.GameApi.waterCrop(p);
+                                        lands[p - 1].water();
                                     }
                                 }
                             }
