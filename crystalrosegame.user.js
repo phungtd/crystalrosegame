@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         crystalrosegame
 // @namespace    http://tampermonkey.net/
-// @version      1.1.4
+// @version      1.1.5
 // @description  try to take over the world!
 // @author       You
 // @match        https://crystalrosegame.wildrift.leagueoflegends.com
@@ -212,6 +212,27 @@
                                     console.log('[TM] harvest', p);
                                     setStatus(`Harvest ${p}`);
                                     await gameScene.game.GameApi.harvestCrop(p);
+
+                                    // harvest then plant
+                                    if (autoPlant) {
+                                        if (hasItem(autoItem)) {
+                                            console.log(`[TM] plant ${p}`);
+                                            setStatus(`Plant ${p}`);
+                                            await gameScene.game.GameApi.plantCrop(p, autoItem);
+                                        } else {
+                                            console.log(`[TM] unavailable ${autoItem}`, gameScene.game.GameData.infoData.bag.seeds);
+                                            if (autoBuy) {
+                                                console.log(`[TM] buy ${autoItem}`);
+                                                setStatus(`Buy ${autoItem}`);
+                                                await gameScene.game.GameApi.exchangeItem(autoItem, 1)
+                                                // if (hasItem(autoItem)) {
+                                                console.log(`[TM] plant ${p}`);
+                                                setStatus(`Plant ${p}`);
+                                                await gameScene.game.GameApi.plantCrop(p, autoItem);
+                                                // }
+                                            }
+                                        }
+                                    }
                                 } else {
                                     if (autoWater && gameScene.game.GameApi.serverUnixTime - d > gameScene.game.GameData.gameConfig.farmEnterWaterDeficitCountdown) {
                                         console.log('[TM] water', p);
